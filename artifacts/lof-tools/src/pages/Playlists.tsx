@@ -1,5 +1,6 @@
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Youtube, ExternalLink, PlaySquare, AlertCircle, Globe } from "lucide-react";
+import { Youtube, ExternalLink, PlaySquare, AlertCircle, Globe, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -35,6 +36,8 @@ interface ApiResponse {
 }
 
 export function Playlists() {
+  const [search, setSearch] = useState("");
+
   const { data, isLoading, isError, error } = useQuery<ApiResponse>({
     queryKey: ["youtube-playlists"],
     queryFn: async () => {
@@ -47,18 +50,55 @@ export function Playlists() {
 
   const regions: RegionEntry[] = Array.isArray(data?.data) ? data.data : [];
 
+  const filteredRegions = useMemo(() => {
+    if (!search.trim()) return regions;
+    const q = search.toLowerCase();
+    return regions
+      .map((entry) => ({
+        ...entry,
+        playlists: entry.playlists.filter(
+          (pl) =>
+            pl.playlist_title.toLowerCase().includes(q) ||
+            entry.region.toLowerCase().includes(q) ||
+            pl.videos.some((v) => v.title.toLowerCase().includes(q))
+        ),
+      }))
+      .filter((entry) => entry.playlists.length > 0 || entry.region.toLowerCase().includes(q));
+  }, [regions, search]);
+
+  const totalShown = filteredRegions.reduce((sum, r) => sum + r.playlists.length, 0);
+
   return (
     <div className="space-y-8">
-      <div className="flex items-center gap-4 border-b border-border pb-4">
-        <Youtube className="w-8 h-8 text-red-500 shrink-0" />
-        <div>
-          <h2 className="text-2xl font-display uppercase tracking-widest leading-none">FF Playlist Network</h2>
-          {data && (
-            <p className="font-mono text-xs text-muted-foreground mt-1">
-              {data.total_regions_active} regions &bull; {data.total_playlists_updated} playlists &bull; fetched {data.fetched_at?.slice(0, 10)}
-            </p>
-          )}
+      <div className="flex flex-col gap-4 border-b border-border pb-4">
+        <div className="flex items-center gap-4">
+          <Youtube className="w-8 h-8 text-red-500 shrink-0" />
+          <div>
+            <h2 className="text-2xl font-display uppercase tracking-widest leading-none">FF Playlist Network</h2>
+            {data && (
+              <p className="font-mono text-xs text-muted-foreground mt-1">
+                {data.total_regions_active} regions &bull; {data.total_playlists_updated} playlists &bull; fetched {data.fetched_at?.slice(0, 10)}
+              </p>
+            )}
+          </div>
         </div>
+
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Search by region, playlist or video title..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full bg-card border border-border pl-10 pr-4 py-2 font-mono text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:shadow-[0_0_8px_hsl(var(--primary)_/_0.3)] transition-all"
+          />
+        </div>
+
+        {search && !isLoading && (
+          <p className="font-mono text-xs text-muted-foreground">
+            {totalShown} playlist{totalShown !== 1 ? "s" : ""} matching &ldquo;{search}&rdquo;
+          </p>
+        )}
       </div>
 
       {isError && (
@@ -91,7 +131,7 @@ export function Playlists() {
         </div>
       ) : (
         <div className="space-y-10">
-          {regions.map((entry) => (
+          {filteredRegions.map((entry) => (
             <div key={entry.region}>
               <div className="flex items-center gap-3 mb-4">
                 <Globe className="w-5 h-5 text-primary shrink-0" />
@@ -189,9 +229,9 @@ export function Playlists() {
             </div>
           ))}
 
-          {regions.length === 0 && !isError && (
+          {filteredRegions.length === 0 && !isError && (
             <div className="py-12 text-center text-muted-foreground font-mono">
-              NO PLAYLIST DATA AVAILABLE.
+              {search ? `NO RESULTS FOR "${search.toUpperCase()}"` : "NO PLAYLIST DATA AVAILABLE."}
             </div>
           )}
         </div>

@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Copy, Download, AlertCircle, Filter } from "lucide-react";
+import { Copy, Download, AlertCircle, Filter, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -50,8 +50,7 @@ function extractUrls(obj: unknown): Array<{ name: string; url: string }> {
     const top = obj as Record<string, unknown>;
     for (const [key, val] of Object.entries(top)) {
       if (typeof val === "string" && val.startsWith("http")) {
-        const name = key;
-        results.push({ name, url: val });
+        results.push({ name: key, url: val });
       } else {
         crawl(val, key);
       }
@@ -66,6 +65,7 @@ function extractUrls(obj: unknown): Array<{ name: string; url: string }> {
 export function StoreAssets() {
   const [region, setRegion] = useState(REGIONS[0]);
   const [activeFilter, setActiveFilter] = useState<string>("All");
+  const [search, setSearch] = useState("");
   const { toast } = useToast();
 
   const { data, isLoading, isError, error } = useQuery({
@@ -90,24 +90,33 @@ export function StoreAssets() {
   const handleRegionChange = (r: string) => {
     setRegion(r);
     setActiveFilter("All");
+    setSearch("");
   };
 
   const assets = useMemo(() => {
     if (!data) return [];
-    const all = extractUrls(data);
-    if (activeFilter === "All") return all;
-    return all.filter(
-      (a) =>
-        a.name.toLowerCase().includes(activeFilter.toLowerCase()) ||
-        a.url.toLowerCase().includes(activeFilter.toLowerCase())
-    );
-  }, [data, activeFilter]);
+    let all = extractUrls(data);
+    if (activeFilter !== "All") {
+      all = all.filter(
+        (a) =>
+          a.name.toLowerCase().includes(activeFilter.toLowerCase()) ||
+          a.url.toLowerCase().includes(activeFilter.toLowerCase())
+      );
+    }
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      all = all.filter(
+        (a) => a.name.toLowerCase().includes(q) || a.url.toLowerCase().includes(q)
+      );
+    }
+    return all;
+  }, [data, activeFilter, search]);
 
   const currentFilters = ["All", ...(REGION_FILTERS[region] || [])];
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-4">
         <h2 className="text-xl font-display text-primary uppercase tracking-widest neon-text-primary">Store Region</h2>
         <div className="flex flex-wrap gap-2">
           {REGIONS.map((r) => (
@@ -123,6 +132,17 @@ export function StoreAssets() {
               {r}
             </button>
           ))}
+        </div>
+
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Search by asset name..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full bg-card border border-border pl-10 pr-4 py-2 font-mono text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:shadow-[0_0_8px_hsl(var(--primary)_/_0.3)] transition-all"
+          />
         </div>
       </div>
 
@@ -148,6 +168,7 @@ export function StoreAssets() {
       {data && (
         <p className="font-mono text-xs text-muted-foreground">
           {assets.length} asset{assets.length !== 1 ? "s" : ""} shown
+          {search ? ` matching "${search}"` : ""}
         </p>
       )}
 
@@ -191,9 +212,7 @@ export function StoreAssets() {
                   alt={asset.name}
                   className="max-w-full max-h-full object-contain relative z-0"
                   loading="lazy"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.opacity = "0.1";
-                  }}
+                  onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.1"; }}
                 />
               </div>
 
@@ -211,9 +230,7 @@ export function StoreAssets() {
                     <Copy className="w-4 h-4 mr-2" />
                     Copy
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
+                  <Button variant="outline" size="icon"
                     className="shrink-0 border-primary/50 text-primary hover:bg-primary hover:text-primary-foreground"
                     asChild
                   >
@@ -229,7 +246,9 @@ export function StoreAssets() {
           {assets.length === 0 && !isError && !isLoading && (
             <div className="col-span-full py-16 text-center flex flex-col items-center justify-center gap-4 neon-border-primary bg-card/30">
               <AlertCircle className="w-8 h-8 text-muted-foreground" />
-              <p className="text-muted-foreground font-mono uppercase">No store assets found.</p>
+              <p className="text-muted-foreground font-mono uppercase">
+                {search ? `No assets matching "${search}"` : "No store assets found."}
+              </p>
             </div>
           )}
         </div>

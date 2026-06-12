@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Copy, Clock, Calendar, AlertCircle } from "lucide-react";
+import { Copy, Clock, Calendar, AlertCircle, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -9,6 +9,7 @@ const REGIONS = ["SG", "BD", "IND", "CIS", "EU", "NA", "PK", "ID", "TH", "ME", "
 
 export function SplashBanners() {
   const [region, setRegion] = useState(REGIONS[0]);
+  const [search, setSearch] = useState("");
   const { toast } = useToast();
 
   const { data, isLoading, isError, error } = useQuery({
@@ -30,12 +31,18 @@ export function SplashBanners() {
     });
   };
 
-  const banners: Array<{ Title: string; Start: string; End: string; Banner: string }> =
+  const allBanners: Array<{ Title: string; Start: string; End: string; Banner: string }> =
     Array.isArray(data?.events) ? data.events : [];
+
+  const banners = useMemo(() => {
+    if (!search.trim()) return allBanners;
+    const q = search.toLowerCase();
+    return allBanners.filter((b) => b.Title?.toLowerCase().includes(q));
+  }, [allBanners, search]);
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-4">
         <h2 className="text-xl font-display text-primary uppercase tracking-widest neon-text-primary">Region Select</h2>
         <div className="flex flex-wrap gap-2">
           {REGIONS.map((r) => (
@@ -51,6 +58,17 @@ export function SplashBanners() {
               {r}
             </button>
           ))}
+        </div>
+
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Search by event title..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full bg-card border border-border pl-10 pr-4 py-2 font-mono text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:shadow-[0_0_8px_hsl(var(--primary)_/_0.3)] transition-all"
+          />
         </div>
       </div>
 
@@ -79,56 +97,64 @@ export function SplashBanners() {
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {banners.map((banner, idx) => (
-            <div
-              key={idx}
-              className="group neon-border-primary bg-card overflow-hidden flex flex-col hover:-translate-y-1 transition-all duration-300 hover:shadow-[0_0_15px_hsl(var(--primary)_/_0.3)]"
-            >
-              <div className="relative aspect-video overflow-hidden bg-muted/20">
-                <img
-                  src={banner.Banner}
-                  alt={banner.Title || "Splash Banner"}
-                  className="w-full h-full object-contain p-2"
-                  loading="lazy"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent opacity-40" />
-              </div>
-
-              <div className="p-4 flex flex-col flex-grow">
-                <h3 className="font-display font-bold text-base mb-4 line-clamp-2" title={banner.Title}>
-                  {banner.Title || "UNTITLED ASSET"}
-                </h3>
-
-                <div className="space-y-2 mb-4 mt-auto">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground font-mono">
-                    <Calendar className="w-4 h-4 text-primary shrink-0" />
-                    <span className="truncate">Start: {banner.Start || "N/A"}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground font-mono">
-                    <Clock className="w-4 h-4 text-primary shrink-0" />
-                    <span className="truncate">End: {banner.End || "N/A"}</span>
-                  </div>
+        <>
+          {!isError && (
+            <p className="font-mono text-xs text-muted-foreground">
+              {banners.length} of {allBanners.length} event{allBanners.length !== 1 ? "s" : ""}
+              {search ? ` matching "${search}"` : ""}
+            </p>
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {banners.map((banner, idx) => (
+              <div
+                key={idx}
+                className="group neon-border-primary bg-card overflow-hidden flex flex-col hover:-translate-y-1 transition-all duration-300 hover:shadow-[0_0_15px_hsl(var(--primary)_/_0.3)]"
+              >
+                <div className="relative aspect-video overflow-hidden bg-muted/20">
+                  <img
+                    src={banner.Banner}
+                    alt={banner.Title || "Splash Banner"}
+                    className="w-full h-full object-contain p-2"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent opacity-40" />
                 </div>
 
-                <Button
-                  onClick={() => copyToClipboard(banner.Banner)}
-                  variant="outline"
-                  className="w-full font-mono uppercase tracking-widest border-primary/50 text-primary hover:bg-primary hover:text-primary-foreground transition-colors group-hover:border-primary"
-                >
-                  <Copy className="w-4 h-4 mr-2" />
-                  Copy URL
-                </Button>
-              </div>
-            </div>
-          ))}
+                <div className="p-4 flex flex-col flex-grow">
+                  <h3 className="font-display font-bold text-base mb-4 line-clamp-2" title={banner.Title}>
+                    {banner.Title || "UNTITLED ASSET"}
+                  </h3>
 
-          {banners.length === 0 && !isError && !isLoading && (
-            <div className="col-span-full py-12 text-center text-muted-foreground font-mono neon-border-primary bg-card/50">
-              NO SPLASH BANNERS FOUND FOR THIS REGION.
-            </div>
-          )}
-        </div>
+                  <div className="space-y-2 mb-4 mt-auto">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground font-mono">
+                      <Calendar className="w-4 h-4 text-primary shrink-0" />
+                      <span className="truncate">Start: {banner.Start || "N/A"}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground font-mono">
+                      <Clock className="w-4 h-4 text-primary shrink-0" />
+                      <span className="truncate">End: {banner.End || "N/A"}</span>
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={() => copyToClipboard(banner.Banner)}
+                    variant="outline"
+                    className="w-full font-mono uppercase tracking-widest border-primary/50 text-primary hover:bg-primary hover:text-primary-foreground transition-colors group-hover:border-primary"
+                  >
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copy URL
+                  </Button>
+                </div>
+              </div>
+            ))}
+
+            {banners.length === 0 && !isError && !isLoading && (
+              <div className="col-span-full py-12 text-center text-muted-foreground font-mono neon-border-primary bg-card/50">
+                {search ? `NO RESULTS FOR "${search.toUpperCase()}"` : "NO SPLASH BANNERS FOUND FOR THIS REGION."}
+              </div>
+            )}
+          </div>
+        </>
       )}
     </div>
   );

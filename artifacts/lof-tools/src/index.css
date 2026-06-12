@@ -1,4 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap');
+
+@font-face {
+  font-family: "GFF-Latin";
+  src: url("/fonts/GFF-Latin-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
 
 @import "tailwindcss";
 @import "tw-animate-css";
@@ -53,7 +61,7 @@
   --color-sidebar-ring: hsl(var(--sidebar-ring));
 
   --font-sans: "Rajdhani", sans-serif;
-  --font-display: "Orbitron", sans-serif;
+  --font-display: "GFF-Latin", "Rajdhani", sans-serif;
   --font-mono: "Rajdhani", monospace;
 
   --radius-sm: 0px;

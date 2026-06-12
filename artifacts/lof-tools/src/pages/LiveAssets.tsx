@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Copy, Download, AlertCircle, Filter } from "lucide-react";
+import { Copy, Download, AlertCircle, Filter, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -51,6 +51,7 @@ function getFilename(url: string): string {
 export function LiveAssets() {
   const [region, setRegion] = useState(REGIONS[0]);
   const [activeFilter, setActiveFilter] = useState<string>("All");
+  const [search, setSearch] = useState("");
   const { toast } = useToast();
 
   const { data, isLoading, isError, error } = useQuery({
@@ -75,22 +76,27 @@ export function LiveAssets() {
   const handleRegionChange = (r: string) => {
     setRegion(r);
     setActiveFilter("All");
+    setSearch("");
   };
 
   const assets = useMemo(() => {
     if (!data?.groups) return [];
-    const allUrls = extractUrlsFromGroups(data.groups);
-    if (activeFilter === "All") return allUrls;
-    return allUrls.filter((url) =>
-      url.toLowerCase().includes(activeFilter.toLowerCase())
-    );
-  }, [data, activeFilter]);
+    let urls = extractUrlsFromGroups(data.groups);
+    if (activeFilter !== "All") {
+      urls = urls.filter((url) => url.toLowerCase().includes(activeFilter.toLowerCase()));
+    }
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      urls = urls.filter((url) => getFilename(url).toLowerCase().includes(q));
+    }
+    return urls;
+  }, [data, activeFilter, search]);
 
   const currentFilters = ["All", ...(REGION_FILTERS[region] || [])];
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-4">
         <h2 className="text-xl font-display text-secondary uppercase tracking-widest neon-text-accent">Region Select</h2>
         <div className="flex flex-wrap gap-2">
           {REGIONS.map((r) => (
@@ -106,6 +112,17 @@ export function LiveAssets() {
               {r}
             </button>
           ))}
+        </div>
+
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Search by filename..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full bg-card border border-border pl-10 pr-4 py-2 font-mono text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-secondary focus:shadow-[0_0_8px_hsl(var(--secondary)_/_0.3)] transition-all"
+          />
         </div>
       </div>
 
@@ -130,7 +147,9 @@ export function LiveAssets() {
 
       {data && (
         <p className="font-mono text-xs text-muted-foreground">
-          {assets.length} asset{assets.length !== 1 ? "s" : ""} &mdash; {data.total_assets ?? 0} total in region
+          {assets.length} asset{assets.length !== 1 ? "s" : ""} shown
+          {search ? ` matching "${search}"` : ""}
+          &nbsp;&mdash;&nbsp;{data.total_assets ?? 0} total in region
         </p>
       )}
 
@@ -174,9 +193,7 @@ export function LiveAssets() {
                   alt="Asset Preview"
                   className="max-w-full max-h-full object-contain"
                   loading="lazy"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.opacity = "0.2";
-                  }}
+                  onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.2"; }}
                 />
               </div>
 
@@ -195,9 +212,7 @@ export function LiveAssets() {
                     <Copy className="w-4 h-4 mr-2" />
                     Copy
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
+                  <Button variant="outline" size="icon"
                     className="shrink-0 border-secondary/50 text-secondary hover:bg-secondary hover:text-secondary-foreground"
                     asChild
                   >
@@ -213,7 +228,9 @@ export function LiveAssets() {
           {assets.length === 0 && !isError && !isLoading && (
             <div className="col-span-full py-16 text-center flex flex-col items-center justify-center gap-4 neon-border-accent bg-card/30">
               <AlertCircle className="w-8 h-8 text-muted-foreground" />
-              <p className="text-muted-foreground font-mono uppercase">No assets match the current filters.</p>
+              <p className="text-muted-foreground font-mono uppercase">
+                {search ? `No assets matching "${search}"` : "No assets match the current filters."}
+              </p>
             </div>
           )}
         </div>

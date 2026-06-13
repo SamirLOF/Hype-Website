@@ -19,7 +19,7 @@ run = "pnpm --filter @workspace/lof-tools run dev"
 
 [services.production]
 build = [ "pnpm", "--filter", "@workspace/lof-tools", "run", "build" ]
-publicDir = "artifacts/lof-tools/dist/public"
+publicDir = "artifacts/lof-tools/dist"
 serve = "static"
 
 [[services.production.rewrites]]

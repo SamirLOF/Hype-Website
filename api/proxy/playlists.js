@@ -1,4 +1,4 @@
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   try {
     const r = await fetch("https://macxffplaylist.vercel.app/api/info");
     const data = await r.json();
@@ -7,4 +7,4 @@ export default async function handler(req, res) {
   } catch (e) {
     res.status(502).json({ error: "Upstream fetch failed", detail: e?.message });
   }
-}
+};

@@ -170,25 +170,46 @@ function AdminPanelContent({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ adminPassword: ADMIN_PW, validity }),
       });
-      return r.json() as Promise<{ otp: OtpEntry }>;
+      const d = await r.json();
+      if (!r.ok) throw new Error(d?.error ?? `Server error ${r.status}`);
+      if (!d.otp) throw new Error("No OTP returned from server");
+      return d as { otp: OtpEntry };
     },
     onSuccess: (d) => {
       setNewOtp(d.otp);
       qc.invalidateQueries({ queryKey: ["admin-otps"] });
     },
+    onError: (err: Error) => {
+      toast({
+        title: "Generation Failed",
+        description: err.message,
+        className: "bg-card border-destructive text-destructive font-mono",
+      });
+    },
   });
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      await fetch(`/api/admin/otp/${id}`, {
+      const r = await fetch(`/api/admin/otp/${id}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ adminPassword: ADMIN_PW }),
       });
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        throw new Error(d?.error ?? `Server error ${r.status}`);
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-otps"] });
       toast({ title: "OTP Revoked", className: "bg-card neon-border-primary" });
+    },
+    onError: (err: Error) => {
+      toast({
+        title: "Revoke Failed",
+        description: err.message,
+        className: "bg-card border-destructive text-destructive font-mono",
+      });
     },
   });
 

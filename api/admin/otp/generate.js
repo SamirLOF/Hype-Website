@@ -1,7 +1,6 @@
-import pg from "pg";
-import { randomBytes } from "crypto";
+const { Pool } = require("pg");
+const { randomBytes } = require("crypto");
 
-const { Pool } = pg;
 let pool;
 function getPool() {
   if (!pool) pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -26,15 +25,21 @@ function generateCode() {
   return code;
 }
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") { res.status(200).end(); return; }
   if (req.method !== "POST") { res.status(405).json({ error: "Method not allowed" }); return; }
-  if (req.body?.adminPassword !== ADMIN_PASSWORD) { res.status(401).json({ error: "Unauthorized" }); return; }
 
-  const { ms, label } = VALIDITY_MAP[req.body?.validity ?? "1hr"] ?? VALIDITY_MAP["1hr"];
+  const body = typeof req.body === "string" ? JSON.parse(req.body) : (req.body || {});
+  if (body.adminPassword !== ADMIN_PASSWORD) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  const validity = body.validity ?? "1hr";
+  const { ms, label } = VALIDITY_MAP[validity] ?? VALIDITY_MAP["1hr"];
   const code = generateCode();
   const id = randomBytes(8).toString("hex");
   const expiresAt = new Date(Date.now() + ms);
@@ -48,6 +53,6 @@ export default async function handler(req, res) {
     res.json({ otp: { id, code, expiresAt, validityLabel: label } });
   } catch (e) {
     console.error("generate otp error:", e);
-    res.status(500).json({ error: "Database error" });
+    res.status(500).json({ error: "Database error: " + e.message });
   }
-}
+};

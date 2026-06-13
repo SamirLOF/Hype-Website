@@ -1,21 +1,20 @@
-import pg from "pg";
+const { Pool } = require("pg");
 
-const { Pool } = pg;
 let pool;
-
 function getPool() {
   if (!pool) pool = new Pool({ connectionString: process.env.DATABASE_URL });
   return pool;
 }
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") { res.status(200).end(); return; }
   if (req.method !== "POST") { res.status(405).json({ error: "Method not allowed" }); return; }
 
-  const code = (req.body?.code ?? "").toUpperCase();
+  const body = typeof req.body === "string" ? JSON.parse(req.body) : (req.body || {});
+  const code = (body.code ?? "").toUpperCase();
   if (!code) { res.json({ valid: false }); return; }
 
   try {
@@ -33,4 +32,4 @@ export default async function handler(req, res) {
     console.error("verify-otp error:", e);
     res.status(500).json({ valid: false, error: "Database error" });
   }
-}
+};

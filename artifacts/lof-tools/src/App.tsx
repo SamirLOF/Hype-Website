@@ -3,7 +3,7 @@ import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { TerminalSquare, Settings, LogOut, Clock } from "lucide-react";
+import { Settings, LogOut, Clock } from "lucide-react";
 import NotFound from "@/pages/not-found";
 import { useToast } from "@/hooks/use-toast";
 
@@ -84,14 +84,27 @@ function AppLayout({
           <div className="flex flex-col md:flex-row md:items-center justify-between py-4 gap-4">
 
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary flex items-center justify-center animate-pulse shadow-[0_0_15px_hsl(var(--primary)_/_0.5)]">
-                <TerminalSquare className="w-6 h-6 text-primary-foreground" />
+              <div className="w-10 h-10 flex items-center justify-center shrink-0">
+                <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <polygon points="20,2 38,11 38,29 20,38 2,29 2,11" fill="hsl(var(--primary)/0.15)" stroke="hsl(var(--primary))" strokeWidth="1.5"/>
+                  <polygon points="20,7 33,13.5 33,26.5 20,33 7,26.5 7,13.5" fill="hsl(var(--primary)/0.08)" stroke="hsl(var(--primary)/0.4)" strokeWidth="0.8"/>
+                  <path d="M14 20 L20 13 L26 20 L20 27 Z" fill="hsl(var(--primary))" opacity="0.9"/>
+                  <path d="M20 13 L20 27" stroke="hsl(var(--primary-foreground))" strokeWidth="1" opacity="0.4"/>
+                  <path d="M14 20 L26 20" stroke="hsl(var(--primary-foreground))" strokeWidth="1" opacity="0.4"/>
+                  <circle cx="20" cy="20" r="2" fill="hsl(var(--primary-foreground))"/>
+                  <circle cx="20" cy="2" r="1.5" fill="hsl(var(--primary))"/>
+                  <circle cx="38" cy="11" r="1.5" fill="hsl(var(--primary))"/>
+                  <circle cx="38" cy="29" r="1.5" fill="hsl(var(--primary))"/>
+                  <circle cx="20" cy="38" r="1.5" fill="hsl(var(--primary))"/>
+                  <circle cx="2" cy="29" r="1.5" fill="hsl(var(--primary))"/>
+                  <circle cx="2" cy="11" r="1.5" fill="hsl(var(--primary))"/>
+                </svg>
               </div>
               <div>
                 <h1 className="text-2xl font-display font-bold uppercase tracking-[0.2em] neon-text-primary m-0 leading-none">
                   LOF TOOLS
                 </h1>
-                <p className="text-[10px] font-mono text-primary/70 tracking-widest mt-1">TACTICAL ASSET COMMAND</p>
+                <p className="text-[10px] font-mono text-primary/70 tracking-widest mt-1">FREE FIRE</p>
               </div>
             </div>
 
@@ -191,7 +204,9 @@ function AuthenticatedApp() {
 
   return (
     <Switch>
-      <Route path="/" component={() => <AppLayout onLogout={logout} otpExpiry={otpExpiry} />} />
+      <Route path="/">
+        <AppLayout onLogout={logout} otpExpiry={otpExpiry} />
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );

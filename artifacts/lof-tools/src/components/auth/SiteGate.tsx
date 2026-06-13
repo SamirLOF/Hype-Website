@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Lock, Unlock, AlertTriangle, Eye, EyeOff, ShieldCheck, Clock } from "lucide-react";
+import { Unlock, AlertTriangle, Eye, EyeOff, ShieldCheck, Clock } from "lucide-react";
 
 interface SiteGateProps {
   onVerify: (password: string, rememberMe: boolean) => Promise<boolean>;
@@ -53,14 +53,27 @@ export function SiteGate({ onVerify, sessionExpired = false }: SiteGateProps) {
           <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
 
           <div className="flex flex-col items-center mb-8">
-            <div className="w-20 h-20 bg-primary/10 border border-primary/40 flex items-center justify-center mb-4 relative">
-              <div className="absolute inset-0 bg-primary/5 animate-pulse" />
-              <Lock className="w-9 h-9 text-primary relative z-10" />
+            <div className="w-20 h-20 flex items-center justify-center mb-4 relative">
+              <div className="absolute inset-0 bg-primary/5 animate-pulse rounded-none" />
+              <svg width="64" height="64" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="relative z-10">
+                <polygon points="20,2 38,11 38,29 20,38 2,29 2,11" fill="hsl(var(--primary)/0.15)" stroke="hsl(var(--primary))" strokeWidth="1.5"/>
+                <polygon points="20,7 33,13.5 33,26.5 20,33 7,26.5 7,13.5" fill="hsl(var(--primary)/0.08)" stroke="hsl(var(--primary)/0.4)" strokeWidth="0.8"/>
+                <path d="M14 20 L20 13 L26 20 L20 27 Z" fill="hsl(var(--primary))" opacity="0.9"/>
+                <path d="M20 13 L20 27" stroke="hsl(var(--primary-foreground))" strokeWidth="1" opacity="0.4"/>
+                <path d="M14 20 L26 20" stroke="hsl(var(--primary-foreground))" strokeWidth="1" opacity="0.4"/>
+                <circle cx="20" cy="20" r="2" fill="hsl(var(--primary-foreground))"/>
+                <circle cx="20" cy="2" r="1.5" fill="hsl(var(--primary))"/>
+                <circle cx="38" cy="11" r="1.5" fill="hsl(var(--primary))"/>
+                <circle cx="38" cy="29" r="1.5" fill="hsl(var(--primary))"/>
+                <circle cx="20" cy="38" r="1.5" fill="hsl(var(--primary))"/>
+                <circle cx="2" cy="29" r="1.5" fill="hsl(var(--primary))"/>
+                <circle cx="2" cy="11" r="1.5" fill="hsl(var(--primary))"/>
+              </svg>
             </div>
             <h1 className="text-3xl font-display font-bold neon-text-primary uppercase tracking-[0.25em] text-center">
               LOF TOOLS
             </h1>
-            <p className="text-xs font-mono text-primary/60 tracking-[0.3em] mt-1 uppercase">Tactical Asset Command</p>
+            <p className="text-xs font-mono text-primary/60 tracking-[0.3em] mt-1 uppercase">Free Fire</p>
             <div className="mt-4 flex items-center gap-2 text-xs font-mono text-muted-foreground border border-border px-3 py-1">
               <ShieldCheck className="w-3 h-3 text-secondary" />
               SECURE AUTHENTICATION REQUIRED

@@ -3,7 +3,6 @@
   "buildCommand": "pnpm --filter @workspace/lof-tools run build",
   "outputDirectory": "artifacts/lof-tools/dist/public",
   "framework": null,
-  "nodeVersion": "20.x",
   "rewrites": [
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]

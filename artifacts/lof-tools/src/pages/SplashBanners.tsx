@@ -36,7 +36,9 @@ export function SplashBanners() {
     if (!search.trim()) return allBanners;
     const q = search.trim().toLowerCase();
     return allBanners.filter((b) =>
-      (b.Title ?? "").toLowerCase().includes(q)
+      (b.Title ?? "").toLowerCase().includes(q) ||
+      (b.Banner ?? "").toLowerCase().includes(q) ||
+      (b.Banner ?? "").split("/").pop()?.toLowerCase().includes(q)
     );
   }, [allBanners, search]);
 
@@ -59,7 +61,7 @@ export function SplashBanners() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
           <input
-            type="text" placeholder="Search by event title..."
+            type="text" placeholder="Search by title, filename or URL..."
             value={searchRaw} onChange={(e) => setSearchRaw(e.target.value)}
             className="w-full bg-card border border-border pl-10 pr-4 py-2 font-mono text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:shadow-[0_0_8px_hsl(var(--primary)_/_0.3)] transition-all"
           />

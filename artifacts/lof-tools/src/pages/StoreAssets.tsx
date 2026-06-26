@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Copy, Download, AlertCircle, Filter, Search, RefreshCw } from "lucide-react";
+import { Copy, Download, AlertCircle, Filter, Search, RefreshCw, FileCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,19 +20,31 @@ const REGION_FILTERS: Record<string, string[]> = {
   TW:   ["252x256", "512x182"],
 };
 
-function extractImageUrls(obj: unknown): Array<{ name: string; url: string }> {
+const IMAGE_EXT = /\.(png|jpg|jpeg|webp|gif|svg)(\?|$)/i;
+
+function isFFCDN(url: string) {
+  return (
+    url.startsWith("https://dl.dir.freefiremobile.com/common") ||
+    url.startsWith("https://dl.cdn.freefiremobile.com/common") ||
+    url.startsWith("https://dl-tata.freefireind.in/common")
+  );
+}
+
+function extractAssetUrls(obj: unknown): Array<{ name: string; url: string }> {
   const results: Array<{ name: string; url: string }> = [];
   const seen = new Set<string>();
   function crawl(v: unknown, key?: string) {
     if (typeof v === "string") {
       if (
-        v.startsWith("http") &&
-        /\.(png|jpg|jpeg|webp|gif|svg)/i.test(v) &&
+        isFFCDN(v) &&
+        !v.endsWith(".html") &&
+        !v.includes("/common/test/167") &&
+        !v.includes("/common/test/PreviewBG") &&
         !seen.has(v)
       ) {
         seen.add(v);
         const raw = v.split("/").pop() || key || "ASSET";
-        const name = decodeURIComponent(raw).replace(/\.[^.]+$/, "");
+        const name = decodeURIComponent(raw);
         results.push({ name, url: v });
       }
       return;
@@ -44,6 +56,11 @@ function extractImageUrls(obj: unknown): Array<{ name: string; url: string }> {
   }
   crawl(obj);
   return results;
+}
+
+function getExt(url: string): string {
+  const m = url.match(/\.([a-z0-9_]+)(\?|$)/i);
+  return m ? m[1].toLowerCase() : "";
 }
 
 export function StoreAssets() {
@@ -76,7 +93,7 @@ export function StoreAssets() {
     setSearchRaw("");
   };
 
-  const allAssets = useMemo(() => data ? extractImageUrls(data) : [], [data]);
+  const allAssets = useMemo(() => data ? extractAssetUrls(data) : [], [data]);
 
   const assets = useMemo(() => {
     let list = allAssets;
@@ -173,30 +190,44 @@ export function StoreAssets() {
         </div>
       ) : !isError && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {assets.map((asset, idx) => (
-            <div key={idx} className="group neon-border-primary bg-card overflow-hidden flex flex-col hover:-translate-y-1 transition-transform duration-300">
-              <div className="relative aspect-square overflow-hidden bg-[#050505] flex items-center justify-center p-4">
-                <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] pointer-events-none z-10" />
-                <img src={asset.url} alt={asset.name} className="max-w-full max-h-full object-contain relative z-0" loading="lazy"
-                  onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.1"; }} />
-              </div>
-              <div className="p-4 flex flex-col flex-grow border-t border-border group-hover:border-primary/30 transition-colors bg-card/80">
-                <h3 className="font-display font-bold text-xs mb-4 text-muted-foreground break-words tracking-wide" title={asset.url}>
-                  {asset.name}
-                </h3>
-                <div className="flex gap-2 mt-auto">
-                  <Button onClick={() => copyToClipboard(asset.url)} variant="outline"
-                    className="flex-grow font-mono uppercase tracking-widest border-primary/50 text-primary hover:bg-primary hover:text-primary-foreground transition-colors">
-                    <Copy className="w-4 h-4 mr-2" />Copy URL
-                  </Button>
-                  <Button variant="outline" size="icon"
-                    className="shrink-0 border-primary/50 text-primary hover:bg-primary hover:text-primary-foreground" asChild>
-                    <a href={asset.url} target="_blank" rel="noopener noreferrer" download><Download className="w-4 h-4" /></a>
-                  </Button>
+          {assets.map((asset, idx) => {
+            const isImage = IMAGE_EXT.test(asset.url);
+            const ext = getExt(asset.url);
+            return (
+              <div key={idx} className="group neon-border-primary bg-card overflow-hidden flex flex-col hover:-translate-y-1 transition-transform duration-300">
+                <div className="relative aspect-square overflow-hidden bg-[#050505] flex items-center justify-center p-4">
+                  <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] pointer-events-none z-10" />
+                  {isImage ? (
+                    <img src={asset.url} alt={asset.name} className="max-w-full max-h-full object-contain relative z-0" loading="lazy"
+                      onError={(e) => {
+                        const t = e.target as HTMLImageElement;
+                        t.style.display = "none";
+                      }} />
+                  ) : (
+                    <div className="relative z-0 flex flex-col items-center gap-2 text-primary/50">
+                      <FileCode className="w-12 h-12" />
+                      <span className="font-mono text-xs uppercase tracking-widest">.{ext || "asset"}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="p-4 flex flex-col flex-grow border-t border-border group-hover:border-primary/30 transition-colors bg-card/80">
+                  <h3 className="font-mono text-xs mb-4 text-muted-foreground break-words" title={asset.url}>
+                    {asset.name}
+                  </h3>
+                  <div className="flex gap-2 mt-auto">
+                    <Button onClick={() => copyToClipboard(asset.url)} variant="outline"
+                      className="flex-grow font-mono uppercase tracking-widest border-primary/50 text-primary hover:bg-primary hover:text-primary-foreground transition-colors">
+                      <Copy className="w-4 h-4 mr-2" />Copy URL
+                    </Button>
+                    <Button variant="outline" size="icon"
+                      className="shrink-0 border-primary/50 text-primary hover:bg-primary hover:text-primary-foreground" asChild>
+                      <a href={asset.url} target="_blank" rel="noopener noreferrer" download><Download className="w-4 h-4" /></a>
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           {assets.length === 0 && !isError && (
             <div className="col-span-full py-16 text-center flex flex-col items-center justify-center gap-4 neon-border-primary bg-card/30">
               <AlertCircle className="w-8 h-8 text-muted-foreground" />

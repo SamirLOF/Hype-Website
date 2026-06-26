@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Copy, Download, AlertCircle, Filter, Search, RefreshCw } from "lucide-react";
+import { Copy, Download, AlertCircle, Filter, Search, RefreshCw, FileCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,14 +26,26 @@ const REGION_FILTERS: Record<string, string[]> = {
   TH:    ["TabTH", "1400x700", ...SHARED_256],
 };
 
-function extractImageUrls(obj: unknown): string[] {
+const IMAGE_EXT = /\.(png|jpg|jpeg|webp|gif|svg)(\?|$)/i;
+
+function isFFCDN(url: string) {
+  return (
+    url.startsWith("https://dl.dir.freefiremobile.com/common") ||
+    url.startsWith("https://dl.cdn.freefiremobile.com/common") ||
+    url.startsWith("https://dl-tata.freefireind.in/common")
+  );
+}
+
+function extractAssetUrls(obj: unknown): string[] {
   const urls: string[] = [];
   const seen = new Set<string>();
   function crawl(v: unknown) {
     if (typeof v === "string") {
       if (
-        v.startsWith("http") &&
-        /\.(png|jpg|jpeg|webp|gif|svg)/i.test(v) &&
+        isFFCDN(v) &&
+        !v.endsWith(".html") &&
+        !v.includes("/common/test/167") &&
+        !v.includes("/common/test/PreviewBG") &&
         !seen.has(v)
       ) {
         seen.add(v);
@@ -51,6 +63,11 @@ function extractImageUrls(obj: unknown): string[] {
 function getFilename(url: string): string {
   try { return decodeURIComponent(new URL(url).pathname.split("/").pop() || url); }
   catch { return url.split("/").pop() || url; }
+}
+
+function getExt(url: string): string {
+  const m = url.match(/\.([a-z0-9_]+)(\?|$)/i);
+  return m ? m[1].toLowerCase() : "";
 }
 
 export function LiveAssets() {
@@ -83,7 +100,7 @@ export function LiveAssets() {
     setSearchRaw("");
   };
 
-  const allUrls = useMemo(() => data ? extractImageUrls(data) : [], [data]);
+  const allUrls = useMemo(() => data ? extractAssetUrls(data) : [], [data]);
 
   const assets = useMemo(() => {
     let urls = allUrls;
@@ -180,29 +197,45 @@ export function LiveAssets() {
         </div>
       ) : !isError && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {assets.map((url, idx) => (
-            <div key={idx} className="group neon-border-accent bg-card overflow-hidden flex flex-col hover:-translate-y-1 transition-transform duration-300">
-              <div className="relative h-40 overflow-hidden bg-[#0a0a0c] flex items-center justify-center p-3">
-                <img src={url} alt="Asset Preview" className="max-w-full max-h-full object-contain" loading="lazy"
-                  onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.2"; }} />
-              </div>
-              <div className="p-4 flex flex-col flex-grow border-t border-border group-hover:border-secondary/30 transition-colors">
-                <div className="mb-4 font-mono text-xs text-muted-foreground break-all" title={url}>
-                  <span className="text-secondary/70 mr-2">FILE:</span>{getFilename(url)}
+          {assets.map((url, idx) => {
+            const isImage = IMAGE_EXT.test(url);
+            const ext = getExt(url);
+            const filename = getFilename(url);
+            return (
+              <div key={idx} className="group neon-border-accent bg-card overflow-hidden flex flex-col hover:-translate-y-1 transition-transform duration-300">
+                <div className="relative h-40 overflow-hidden bg-[#0a0a0c] flex items-center justify-center p-3">
+                  {isImage ? (
+                    <img src={url} alt={filename} className="max-w-full max-h-full object-contain" loading="lazy"
+                      onError={(e) => {
+                        const t = e.target as HTMLImageElement;
+                        t.style.display = "none";
+                        t.parentElement?.classList.add("file-fallback");
+                      }} />
+                  ) : (
+                    <div className="flex flex-col items-center gap-2 text-secondary/50">
+                      <FileCode className="w-12 h-12" />
+                      <span className="font-mono text-xs uppercase tracking-widest">.{ext || "asset"}</span>
+                    </div>
+                  )}
                 </div>
-                <div className="flex gap-2 mt-auto">
-                  <Button onClick={() => copyToClipboard(url)} variant="outline"
-                    className="flex-grow font-mono uppercase tracking-widest border-secondary/50 text-secondary hover:bg-secondary hover:text-secondary-foreground transition-colors">
-                    <Copy className="w-4 h-4 mr-2" />Copy URL
-                  </Button>
-                  <Button variant="outline" size="icon"
-                    className="shrink-0 border-secondary/50 text-secondary hover:bg-secondary hover:text-secondary-foreground" asChild>
-                    <a href={url} target="_blank" rel="noopener noreferrer" download><Download className="w-4 h-4" /></a>
-                  </Button>
+                <div className="p-4 flex flex-col flex-grow border-t border-border group-hover:border-secondary/30 transition-colors">
+                  <div className="mb-4 font-mono text-xs text-muted-foreground break-all" title={url}>
+                    <span className="text-secondary/70 mr-2">FILE:</span>{filename}
+                  </div>
+                  <div className="flex gap-2 mt-auto">
+                    <Button onClick={() => copyToClipboard(url)} variant="outline"
+                      className="flex-grow font-mono uppercase tracking-widest border-secondary/50 text-secondary hover:bg-secondary hover:text-secondary-foreground transition-colors">
+                      <Copy className="w-4 h-4 mr-2" />Copy URL
+                    </Button>
+                    <Button variant="outline" size="icon"
+                      className="shrink-0 border-secondary/50 text-secondary hover:bg-secondary hover:text-secondary-foreground" asChild>
+                      <a href={url} target="_blank" rel="noopener noreferrer" download><Download className="w-4 h-4" /></a>
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           {assets.length === 0 && !isError && (
             <div className="col-span-full py-16 text-center flex flex-col items-center justify-center gap-4 neon-border-accent bg-card/30">
               <AlertCircle className="w-8 h-8 text-muted-foreground" />
